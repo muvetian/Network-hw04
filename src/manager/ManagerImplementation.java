@@ -71,15 +71,20 @@ public class ManagerImplementation implements Manager {
 		String peerName = "Peer-" + peerID;
 		try {
 			registry.rebind(peerName, peer);
+			Entry<Integer, Peer> entry = myPeers.floorEntry(peerID);
+			Integer successor_ID = myPeers.ceilingKey(peerID);
 			myPeers.put(peerID, peer);
 			
-			int randomNumber = random.nextInt();
-			Entry<Integer, Peer> entry = myPeers.floorEntry(randomNumber);
-			Peer randomPeer = entry.getValue();
-			// Finds the largest entry whose key is less or equal than the random number
-		
 			
-			randomPeer.move(randomNumber, peerID, peer);
+			Peer predecessor = entry.getValue();
+			// Finds the largest entry whose key is less or equal than the random number
+			
+			
+			// move part of the data stored in peer's predecessor to peer
+			// Namely the begin is the newly added node's ID, and the end is the ID of this newly added node's sucessor
+			predecessor.move(peerID,successor_ID, peer);
+			
+			
 		}
 		catch(AccessException exception) {
 			System.err.println("Error binding peer into the registry.");

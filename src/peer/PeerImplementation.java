@@ -23,14 +23,30 @@ public class PeerImplementation implements Peer {
 	private Manager manager;
 	private Map<Integer, String> table;
 	private ConcurrentSkipListMap<Integer, Peer> myPeers;
-
-	public PeerImplementation(Registry registry, Manager manager) {
+	private ArrayList<Peer> myPeerList;
+	public PeerImplementation(Registry registry, Manager manager) throws RemoteException {
 		super();
 
 		this.manager = manager;
 		this.table = new ConcurrentHashMap<Integer, String>();
+		PeerImplementation random_peer = (PeerImplementation)this.manager.getRandom();
+		
+		// We are not getting this list from the random peer tho
+		// Do we do all this in the constructor?
+		// We cannot access the peer list in the random peer because the parent class does not have the attribute peerlist
+		
+		
+		ConcurrentSkipListMap<Integer, Peer> updatedPeers = new ConcurrentSkipListMap<Integer, Peer>();
+		for(Peer peer: myPeerList) {
+			updatedPeers.put(peer.hashCode(), peer);
+		}
+		myPeers = updatedPeers;
+		
+		
 	}
-
+	public ArrayList<Peer> getPeerList(){
+		return myPeerList;
+	}
 	public void put(Integer key, String value, Client client) {
 		Peer destination = find(key);
 
