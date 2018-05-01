@@ -136,7 +136,7 @@ public class PeerImplementation implements Peer {
 		// Finding the predecessor
 		Integer predID = myPeers.floorKey(peerID);
 		Integer succID = myPeers.ceilingKey(peerID);
-		Iterator<Integer> itr = this.table.keySet().iterator();
+		Iterator<Integer> itr = this.table.keySet().iterator(); // Should be from sucessor not from 'this'
 		
 		while(itr.hasNext()){
 			Integer key = itr.next();
