@@ -29,20 +29,20 @@ public class PeerImplementation implements Peer {
 
 		this.manager = manager;
 		this.table = new ConcurrentHashMap<Integer, String>();
-		PeerImplementation random_peer = (PeerImplementation)this.manager.getRandom();
-		
+		Peer random_peer = (PeerImplementation)this.manager.getRandom();
+
 		// We are not getting this list from the random peer tho
 		// Do we do all this in the constructor?
 		// We cannot access the peer list in the random peer because the parent class does not have the attribute peerlist
-		
-		
+
+		//TODO: We are supposed to implement these thigns in the peer interface kinda similar to what manager.java has
 		ConcurrentSkipListMap<Integer, Peer> updatedPeers = new ConcurrentSkipListMap<Integer, Peer>();
 		for(Peer peer: myPeerList) {
 			updatedPeers.put(peer.hashCode(), peer);
 		}
 		myPeers = updatedPeers;
-		
-		
+
+
 	}
 	public ArrayList<Peer> getPeerList(){
 		return myPeerList;
@@ -130,7 +130,7 @@ public class PeerImplementation implements Peer {
 	}
 	public void move(Integer begin, Integer end, Peer destination){
 		ConcurrentSkipListMap<Integer,Peer> submap=(ConcurrentSkipListMap<Integer, Peer>) this.myPeers.subMap(begin, end);
-		
+
 		Iterator<Integer> itr = submap.keySet().iterator();
 		while(itr.hasNext()){
 			Integer key = itr.next();
@@ -141,10 +141,10 @@ public class PeerImplementation implements Peer {
 			catch(Exception e){
 				System.out.print("Error while moving the submap");
 			}
-			
+
 		}
-		
-		
+
+
 	}
 
 	public static void main(String[] args) {
@@ -165,5 +165,5 @@ public class PeerImplementation implements Peer {
 			exception.printStackTrace();
 		}
 	}
-	
+
 }

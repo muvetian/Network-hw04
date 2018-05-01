@@ -67,24 +67,27 @@ public class ManagerImplementation implements Manager {
 	public void register(Peer peer) {
 		int peerID = peer.hashCode();
 		peerID = (int) (peerID % (java.lang.Math.pow(2,16)));
-		
+
 		String peerName = "Peer-" + peerID;
 		try {
 			registry.rebind(peerName, peer);
 			Entry<Integer, Peer> entry = myPeers.floorEntry(peerID);
 			Integer successor_ID = myPeers.ceilingKey(peerID);
 			myPeers.put(peerID, peer);
-			
-			
+
+
 			Peer predecessor = entry.getValue();
 			// Finds the largest entry whose key is less or equal than the random number
-			
-			
+
+
 			// move part of the data stored in peer's predecessor to peer
 			// Namely the begin is the newly added node's ID, and the end is the ID of this newly added node's sucessor
+
+
+			// Move anything between this newly added node's predecessor and this node from old successor
 			predecessor.move(peerID,successor_ID, peer);
-			
-			
+
+
 		}
 		catch(AccessException exception) {
 			System.err.println("Error binding peer into the registry.");
@@ -148,7 +151,7 @@ public class ManagerImplementation implements Manager {
 			catch(RemoteException exception) {
 				System.err.println("Peer with ID " + peerID + " might be down.");
 			}
-		}	
+		}
 	}
 
 	private Peer find(Integer key) {
@@ -171,7 +174,7 @@ public class ManagerImplementation implements Manager {
 			Manager managerStub = (Manager) UnicastRemoteObject.exportObject(manager, 0);
 
 			registry.rebind("DynamoClone", managerStub);
-			
+
 			PeriodicAgent agent = new PeriodicAgent(manager);
 			agent.start();
 		}
