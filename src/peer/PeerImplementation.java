@@ -129,19 +129,28 @@ public class PeerImplementation implements Peer {
 		}
 	}
 	public void move(Integer begin, Integer end, Peer destination){
-		ConcurrentSkipListMap<Integer,Peer> submap=(ConcurrentSkipListMap<Integer, Peer>) this.myPeers.subMap(begin, end);
+	
 
-		Iterator<Integer> itr = submap.keySet().iterator();
+//		Iterator<Integer> itr = submap.keySet().iterator();
+		Integer peerID = (int) (destination.hashCode() % (java.lang.Math.pow(2,16)));
+		// Finding the predecessor
+		Integer predID = myPeers.floorKey(peerID);
+		Integer succID = myPeers.ceilingKey(peerID);
+		Iterator<Integer> itr = this.table.keySet().iterator();
+		
 		while(itr.hasNext()){
 			Integer key = itr.next();
-			String value = this.table.get(key);
-			try{
-				destination.put(key,value, null);
-			}
-			catch(Exception e){
-				System.out.print("Error while moving the submap");
-			}
+			if( predID <= key && key <= peerID){
+				String value = this.table.get(key);
+				try{
+					destination.put(key,value, null);
+				}
+				catch(Exception e){
+					System.out.print("Error while moving the submap");
+				}
 
+			}
+			
 		}
 
 

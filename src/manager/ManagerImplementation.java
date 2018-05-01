@@ -157,13 +157,14 @@ public class ManagerImplementation implements Manager {
 	private Peer find(Integer key) {
 		// The first node is always the destination,
 		// so every time a node joins, you have a new hash table. Ugh.
-		Entry<Integer, Peer> entry = myPeers.firstEntry();
+		int hashedKey = (int) (key.hashCode() % (java.lang.Math.pow(2,16)));
+		Entry<Integer,Peer> entry = myPeers.ceilingEntry(hashedKey);	
 
 		if(entry != null) {
 			return entry.getValue();
 		}
-		int hashedKey = (int) (key.hashCode() % (java.lang.Math.pow(2,16)));
-		return myPeers.get(hashedKey);
+		// What if the key is not in the system
+		return myPeers.firstEntry().getValue();
 	}
 
 	public static void main(String[] args) {
