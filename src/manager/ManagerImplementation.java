@@ -32,37 +32,6 @@ public class ManagerImplementation implements Manager {
 		this.random = new Random();
 	}
 
-	public void put(Integer key, String value, Client client) {
-		try {
-			Peer destinationPeer = find(key);
-
-			if(destinationPeer != null) {
-				destinationPeer.put(key, value, client);
-			}
-			else {
-				System.err.println("Error finding destination peer");
-			}
-		}
-		catch(Exception exeption) {
-			System.err.println("Error contacting destination peer");
-		}
-	}
-
-	public void get(Integer key, Client client) {
-		try {
-			Peer destinationPeer = find(key);
-
-			if(destinationPeer != null) {
-				destinationPeer.get(key, client);
-			}
-			else {
-				System.err.println("Error finding destination peer");
-			}
-		}
-		catch(Exception exeption) {
-			System.err.println("Error contacting destination peer");
-		}
-	}
 
 	public void register(Peer peer) {
 		int peerID = peer.hashCode();
@@ -71,12 +40,12 @@ public class ManagerImplementation implements Manager {
 		String peerName = "Peer-" + peerID;
 		try {
 			registry.rebind(peerName, peer);
-			Entry<Integer, Peer> entry = myPeers.floorEntry(peerID);
-			Integer successor_ID = myPeers.ceilingKey(peerID);
+			Entry<Integer, Peer> entry = myPeers.ceilingEntry(peerID);
+			Integer predecessor_ID = myPeers.floorKey(peerID);
 			myPeers.put(peerID, peer);
 
 
-			Peer predecessor = entry.getValue();
+			Peer sucessor = entry.getValue();
 			// Finds the largest entry whose key is less or equal than the random number
 
 
@@ -85,7 +54,7 @@ public class ManagerImplementation implements Manager {
 
 
 			// Move anything between this newly added node's predecessor and this node from old successor
-			predecessor.move(peerID,successor_ID, peer);
+			sucessor.move(predecessor_ID,peerID, peer);
 
 
 		}
@@ -130,15 +99,7 @@ public class ManagerImplementation implements Manager {
 		return null;
 	}
 
-	public ArrayList<Peer> getCurrentPeers() {
-		ArrayList<Peer> result = new ArrayList<Peer>();
 
-		for(Entry<Integer, Peer> entry: myPeers.entrySet()) {
-			result.add(entry.getValue());
-		}
-
-		return result;
-	}
 
 	public void heartbeat() {
 		for(Entry<Integer, Peer> entry: myPeers.entrySet()) {

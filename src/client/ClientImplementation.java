@@ -8,6 +8,8 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 import manager.Manager;
+import peer.Peer;
+import peer.PeerImplementation;
 
 import java.util.Scanner;
 
@@ -84,13 +86,15 @@ public class ClientImplementation implements Client {
 					String value = promptValue(input);
 
 					// The answer will be notified back to us via submitAnswerPut
-					manager.put(key, value, clientStub);
+					Peer rPeer =  manager.getRandom();
+					rPeer.put(key, value, clientStub);
 				}
 				else if(operation.equals("get")) {
 					int key = promptKey(input);
 
 					// The answer will be notified back to us via submitAnswerGet
-					manager.get(key, clientStub);
+					Peer rPeer =  manager.getRandom();
+					rPeer.get(key, clientStub);
 				}
 				else if(operation.equals("exit")) {
 					System.out.println("Exiting");

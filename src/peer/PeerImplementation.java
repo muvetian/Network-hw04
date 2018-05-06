@@ -9,9 +9,11 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import client.Client;
@@ -23,31 +25,21 @@ public class PeerImplementation implements Peer {
 	private Manager manager;
 	private Map<Integer, String> table;
 	private ConcurrentSkipListMap<Integer, Peer> myPeers;
-	private ArrayList<Peer> myPeerList;
+	
 	public PeerImplementation(Registry registry, Manager manager) throws RemoteException {
 		super();
 
 		this.manager = manager;
-		this.table = new ConcurrentHashMap<Integer, String>();
-		Peer random_peer = (PeerImplementation)this.manager.getRandom();
-
-		// We are not getting this list from the random peer tho
-		// Do we do all this in the constructor?
-		// We cannot access the peer list in the random peer because the parent class does not have the attribute peerlist
-
-		//TODO: We are supposed to implement these thigns in the peer interface kinda similar to what manager.java has
-		ConcurrentSkipListMap<Integer, Peer> updatedPeers = new ConcurrentSkipListMap<Integer, Peer>();
-		for(Peer peer: myPeerList) {
-			updatedPeers.put(peer.hashCode(), peer);
-		}
-		myPeers = updatedPeers;
+		this.table = new ConcurrentSkipListMap<Integer, String>();
+		
+		
+		
+		myPeers = new ConcurrentSkipListMap<Integer,Peer>();
 
 
 	}
-	public ArrayList<Peer> getPeerList(){
-		return myPeerList;
-	}
-	public void put(Integer key, String value, Client client) {
+	
+	public void put(Integer key, String value, Client client) throws RemoteException {
 		Peer destination = find(key);
 
 		if(destination == this) {
@@ -62,11 +54,14 @@ public class PeerImplementation implements Peer {
 			}
 		}
 		else {
-			System.err.println("TODO: Forward the request to the right peer after you have the membership list.");
+			//Do we have to consider when the key is not found in the system and we have to create a new key-value pair?
+			Peer randomPeer = (PeerImplementation)this.manager.getRandom();
+			randomPeer.put(key,value,client);
+			
 		}
 	}
 
-	public void get(Integer key, Client client) {
+	public void get(Integer key, Client client) throws RemoteException {
 		Peer destination = find(key);
 
 		if(destination == this) {
@@ -81,7 +76,10 @@ public class PeerImplementation implements Peer {
 			}
 		}
 		else {
-			System.err.println("TODO: Forward the request to the right peer after you have the membership list.");
+			
+			Peer randomPeer = (PeerImplementation)this.manager.getRandom();
+			randomPeer.get(key, client);
+			
 		}
 	}
 
@@ -89,14 +87,34 @@ public class PeerImplementation implements Peer {
 		System.out.println("Tum-Tum");
 		return true;
 	}
-
+	public ConcurrentSkipListMap<Integer,String> getTable(){
+		return (ConcurrentSkipListMap<Integer, String>) table;
+	}
+	public ArrayList<Peer> getCurrentPeers(){
+		ArrayList<Peer> result = new ArrayList<Peer>();
+		for(Entry<Integer, Peer> entry: myPeers.entrySet()) {
+			result.add(entry.getValue());
+		}
+		
+		return result;
+	}
 	public void updateMembers() {
 		System.out.println("Updating member list");
 
-		ArrayList<Peer> peers = null;
+		ArrayList<Peer> peers = new ArrayList<Peer>();
 
 		try {
-			peers = manager.getCurrentPeers();
+			Peer random_peer = (PeerImplementation)this.manager.getRandom();
+			if(random_peer == null){
+				// Random returns null so the node is the first one
+				// Add itself to the list
+				peers.add(this);
+			}
+			else{
+				// It does not return null so update it with whatever the random peer has
+				peers = random_peer.getCurrentPeers(); 
+			}
+			
 		}
 		catch (RemoteException exception) {
 			System.err.println("Unable to contact manager to update members.");
@@ -106,20 +124,36 @@ public class PeerImplementation implements Peer {
 		ConcurrentSkipListMap<Integer, Peer> updatedPeers = new ConcurrentSkipListMap<Integer, Peer>();
 
 		for(Peer peer: peers) {
-			updatedPeers.put(peer.hashCode(), peer);
+			updatedPeers.put((int) (peer.hashCode()% (java.lang.Math.pow(2,16))), peer);
 		}
 
 		myPeers = updatedPeers;
 	}
 
 	private Peer find(Integer key) {
-		return this;
-	}
+		int hashedKey = (int) (key.hashCode() % (java.lang.Math.pow(2,16)));
+		Entry<Integer,Peer> entry = myPeers.ceilingEntry(hashedKey);	
 
+		if(entry != null) {
+			return entry.getValue();
+		}
+		// What if the key is not in the system
+		return myPeers.firstEntry().getValue();
+	}
+	public void addPeer(Peer peer){
+		Integer peerID = (int) (peer.hashCode() % (java.lang.Math.pow(2,16)));
+		myPeers.put(peerID, peer);
+	}
 	public void join(Manager manager) {
 		try {
 			Peer peerStub = (Peer) UnicastRemoteObject.exportObject(this, 0);
 			manager.register(peerStub);
+			// Contact every peer in myPeers and inform them that another peer should be added
+			for (Entry<Integer,Peer> peerEntry : myPeers.entrySet()){
+				Peer peer = peerEntry.getValue();
+				((PeerImplementation) peer).addPeer(this);
+			}
+			
 		}
 		catch(AccessException exception) {
 			System.err.println("Error binding peer into the registry.");
@@ -136,21 +170,19 @@ public class PeerImplementation implements Peer {
 		// Finding the predecessor
 		Integer predID = myPeers.floorKey(peerID);
 		Integer succID = myPeers.ceilingKey(peerID);
-		Iterator<Integer> itr = this.table.keySet().iterator(); // Should be from sucessor not from 'this'
-		
+		Peer successor = this.myPeers.get(succID);
+		ConcurrentNavigableMap<Integer, String> submap = this.getTable().subMap(begin, end);//should be moving this to the newly added node
+		Iterator<Entry<Integer,String>> itr = submap.descendingMap().entrySet().iterator();
 		while(itr.hasNext()){
-			Integer key = itr.next();
-			if( predID <= key && key <= peerID){
-				String value = this.table.get(key);
-				try{
-					destination.put(key,value, null);
-				}
-				catch(Exception e){
-					System.out.print("Error while moving the submap");
-				}
-
+			Entry<Integer,String> entry = itr.next();
+			Integer key = entry.getKey();
+			String value = entry.getValue();
+			try{
+				destination.put(key,value, null);
 			}
-			
+			catch(Exception e){
+				System.out.print("Error while moving the submap");
+			}
 		}
 
 
@@ -163,9 +195,10 @@ public class PeerImplementation implements Peer {
 			Manager manager = (Manager) registry.lookup("DynamoClone");
 
 			PeerImplementation peer = new PeerImplementation(registry, manager);
-
+		
+			peer.updateMembers(); // update members here?
 			peer.join(manager);
-
+			
 			PeriodicAgent agent = new PeriodicAgent(peer);
 			agent.start();
 		}
